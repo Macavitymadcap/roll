@@ -9,6 +9,7 @@
 //! parsing, so every notation built from user input is within bounds.
 
 use regex::{Captures, Regex};
+use std::fmt;
 use std::{str::FromStr, sync::LazyLock};
 
 mod error;
@@ -166,6 +167,22 @@ impl FromStr for Notation {
     }
 }
 
+impl fmt::Display for Notation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.count != 1 {
+            write!(f, "{}", self.count)?
+        }
+
+        write!(f, "d{}", self.sides)?;
+
+        if let Some(modifier) = self.modifier {
+            write!(f, "{modifier}")?
+        }
+
+        Ok(())
+    }
+}
+
 fn parse_count(captures: &Captures) -> Result<u32, NotationError> {
     let count = captures
         .name("count")
@@ -205,11 +222,9 @@ fn check_bounds(value: u32, name: &'static str) -> Result<u32, NotationError> {
 
 #[cfg(test)]
 mod tests {
-    use ::rstest::rstest;
-
     use super::*;
-
     use crate::test_helpers::modifier;
+    use ::rstest::rstest;
 
     mod try_new {
         use super::*;
@@ -303,7 +318,6 @@ mod tests {
             );
         }
 
-
         #[rstest]
         #[case::word("banana")]
         #[case::whitespace_between_digits("2d1 0")]
@@ -352,6 +366,20 @@ mod tests {
             let result = input.parse::<Notation>();
 
             assert_eq!(result, Err(expected));
+        }
+    }
+
+    mod display {
+        use super::*;
+
+        #[rstest]
+        #[case::one_die(Notation { count: 1, sides: 100, modifier: None}, "d100")]
+        #[case::many_dice(Notation {count: 5, sides: 6, modifier: None}, "5d6")]
+        #[case::with_modifier(Notation { count: 10, sides: 4, modifier: Some(modifier(Operator::Sub, 5))}, "10d4-5")]
+        fn returns_formatted_string(#[case] notation: Notation, #[case] expected: &str) {
+            let result = notation.to_string();
+
+            assert_eq!(result, expected);
         }
     }
 

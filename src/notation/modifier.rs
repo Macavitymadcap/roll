@@ -1,15 +1,15 @@
 //! Modifiers applied to the total of a roll, such as the `+3` in `2d6+3`.
 
-use std::str::FromStr;
-
 use super::{MAX_VALUE, NotationError};
+use std::fmt;
+use std::str::FromStr;
 
 /// An arithmetic operator in a modifier.
 ///
 /// Parses from `+`, `-`, `*` or `/`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operator {
-     /// Adds the value to the total (`+`).
+    /// Adds the value to the total (`+`).
     Add,
     /// Subtracts the value from the total, stopping at zero (`-`).
     Sub,
@@ -32,6 +32,19 @@ impl FromStr for Operator {
         };
 
         Ok(operator)
+    }
+}
+
+impl fmt::Display for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Operator::Add => write!(f, "+")?,
+            Operator::Sub => write!(f, "-")?,
+            Operator::Mul => write!(f, "*")?,
+            Operator::Div => write!(f, "/")?,
+        }
+
+        Ok(())
     }
 }
 
@@ -111,6 +124,12 @@ impl Modifier {
     }
 }
 
+impl fmt::Display for Modifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.operator, self.value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -121,50 +140,78 @@ mod tests {
         use super::*;
 
         mod from_str {
-        use super::*;
+            use super::*;
 
-        #[rstest]
-        #[case::add("+", Operator::Add)]
-        #[case::sub("-", Operator::Sub)]
-        #[case::mul("*", Operator::Mul)]
-        #[case::div("/", Operator::Div)]
-        fn accepts(#[case] input: &str, #[case] expected: Operator) {
-            let result: Operator = input.parse().unwrap();
+            #[rstest]
+            #[case::add("+", Operator::Add)]
+            #[case::sub("-", Operator::Sub)]
+            #[case::mul("*", Operator::Mul)]
+            #[case::div("/", Operator::Div)]
+            fn accepts(#[case] input: &str, #[case] expected: Operator) {
+                let result: Operator = input.parse().unwrap();
 
-            assert_eq!(result, expected)
+                assert_eq!(result, expected)
+            }
+
+            #[rstest]
+            #[case::empty("")]
+            #[case::one_char_string("%")]
+            #[case::duplicated_operator("++")]
+            fn rejects(#[case] input: &str) {
+                let result = input.parse::<Operator>();
+
+                assert!(matches!(result, Err(NotationError::InvalidOperator)))
+            }
         }
 
-        #[rstest]
-        #[case::empty("")]
-        #[case::one_char_string("%")]
-        #[case::duplicated_operator("++")]
-        fn rejects(#[case] input: &str) {
-            let result = input.parse::<Operator>();
+        mod display {
+            use super::*;
 
-            assert!(matches!(result, Err(NotationError::InvalidOperator)))
+            #[rstest]
+            #[case::add(Operator::Add, String::from("+"))]
+            #[case::sub(Operator::Sub, String::from("-"))]
+            #[case::mul(Operator::Mul, String::from("*"))]
+            #[case::div(Operator::Div, String::from("/"))]
+            fn returns_formatted_string(#[case] operator: Operator, #[case] expected: String) {
+                assert_eq!(operator.to_string(), expected)
+            }
         }
-    }
-
     }
 
     mod modifier {
         use super::*;
 
+        mod display {
+            use super::*;
+
+            #[test]
+            fn returns_formatted_string() {
+                let modifier = Modifier {
+                    operator: Operator::Add,
+                    value: 10,
+                };
+
+                let result = modifier.to_string();
+
+                assert_eq!(result, "+10")
+            }
+        }
+
         mod try_new {
             use super::*;
-    
+
             #[rstest]
             #[case::add(Operator::Add)]
             #[case::sub(Operator::Sub)]
             #[case::mul(Operator::Mul)]
             fn accepts_zero_for_non_division_operators(#[case] operator: Operator) {
                 let value = 0;
-    
+
                 let result = Modifier::try_new(operator, value);
-    
+
                 assert_eq!(result, Ok(Modifier { operator, value }));
             }
-    
+
             #[rstest]
             #[case::add(Operator::Add)]
             #[case::sub(Operator::Sub)]
@@ -172,12 +219,12 @@ mod tests {
             #[case::div(Operator::Div)]
             fn accepts_maximum_value(#[case] operator: Operator) {
                 let value = MAX_VALUE;
-    
+
                 let result = Modifier::try_new(operator, value);
-    
+
                 assert_eq!(result, Ok(Modifier { operator, value }));
             }
-    
+
             #[rstest]
             #[case::add(Operator::Add)]
             #[case::sub(Operator::Sub)]
@@ -185,29 +232,29 @@ mod tests {
             #[case::div(Operator::Div)]
             fn rejects_above_the_maximum(#[case] operator: Operator) {
                 let value = MAX_VALUE + 1;
-    
+
                 let result = Modifier::try_new(operator, value);
-    
+
                 assert!(matches!(
                     result,
                     Err(NotationError::NumberTooLarge(MAX_VALUE))
                 ));
             }
-    
+
             #[test]
             fn rejects_division_by_zero() {
                 let operator = Operator::Div;
                 let value = 0;
-    
+
                 let result = Modifier::try_new(operator, value);
-    
+
                 assert!(matches!(result, Err(NotationError::Zero("divisor"))));
             }
         }
-    
+
         mod apply {
             use super::*;
-    
+
             #[rstest]
             #[case::add(4, Operator::Add, 2, 6)]
             #[case::add_saturates(u32::MAX, Operator::Add, 1, u32::MAX)]
@@ -224,9 +271,9 @@ mod tests {
                 #[case] expected: u32,
             ) {
                 let modifier = Modifier { operator, value };
-    
+
                 let result = modifier.apply(total);
-    
+
                 assert_eq!(result, expected);
             }
         }

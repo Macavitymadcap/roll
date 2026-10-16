@@ -17,7 +17,7 @@
 //! let rolls = roll(RollType::Advantage(notation), &mut rand::rng());
 //!
 //! assert_eq!(rolls.len(), 2);
-//! assert!(rolls[0].total() >= rolls[1].total());
+//! assert!(rolls[0].total >= rolls[1].total);
 //! ```
 
 #![warn(missing_docs)]

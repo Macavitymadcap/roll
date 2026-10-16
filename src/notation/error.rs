@@ -1,6 +1,6 @@
 //! Errors from parsing or constructing dice notation.
 
-use std::num;
+use std::num::ParseIntError;
 use thiserror::Error;
 
 /// An error from parsing or constructing dice notation.
@@ -13,7 +13,7 @@ pub enum NotationError {
     /// A number in the input couldn't be parsed, usually because it's
     /// too large for a `u32`.
     #[error("invalid number: {0}")]
-    InvalidNumber(#[from] num::ParseIntError),
+    InvalidNumber(#[from] ParseIntError),
 
     /// A value that must be positive was zero. Holds the name of the
     /// value: `"count"`, `"sides"` or `"divisor"`.

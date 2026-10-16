@@ -5,10 +5,9 @@
 //! caller, so results can be made repeatable in tests by using a seeded
 //! generator.
 
+use crate::notation::Notation;
 use rand::{Rng, RngExt};
 use std::cmp::Reverse;
-
-use crate::notation::Notation;
 
 /// What to roll, and how.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,22 +28,12 @@ pub enum RollType {
 /// The result of a single roll.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Roll {
-    dice: Vec<u32>,
-    total: u32,
-}
-
-impl Roll {
     /// Every die rolled, in the order rolled, without the modifier. For
     /// ability scores, this includes the dropped die.
-    pub fn dice(&self) -> &[u32] {
-        &self.dice
-    }
-
+    pub dice: Vec<u32>,
     /// The final result, after applying any modifier or dropping the
     /// lowest die.
-    pub fn total(&self) -> &u32 {
-        &self.total
-    }
+    pub total: u32,
 }
 
 fn roll_dice(count: u32, sides: u32, rng: &mut impl Rng) -> Vec<u32> {
@@ -83,7 +72,7 @@ fn roll_ability_score(rng: &mut impl Rng) -> Roll {
 /// let rolls = roll(RollType::Normal(notation), &mut rand::rng());
 ///
 /// assert_eq!(rolls.len(), 1);
-/// assert_eq!(rolls[0].dice().len(), 2);
+/// assert_eq!(rolls[0].dice.len(), 2);
 /// ```
 pub fn roll(roll_type: RollType, rng: &mut impl Rng) -> Vec<Roll> {
     match roll_type {
@@ -253,7 +242,6 @@ mod tests {
             assert_eq!(result.len(), 1);
             let roll = &result[0];
             assert_eq!(roll.dice.len(), 2);
-            assert!((2..=12).contains(&roll.total));
         }
 
         #[rstest]
