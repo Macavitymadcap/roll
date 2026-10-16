@@ -1,17 +1,26 @@
-use std::str;
+//! Modifiers applied to the total of a roll, such as the `+3` in `2d6+3`.
 
-use super::ParseError;
+use std::str::FromStr;
 
+use super::{MAX_VALUE, NotationError};
+
+/// An arithmetic operator in a modifier.
+///
+/// Parses from `+`, `-`, `*` or `/`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operator {
+     /// Adds the value to the total (`+`).
     Add,
+    /// Subtracts the value from the total, stopping at zero (`-`).
     Sub,
+    /// Multiplies the total by the value (`*`).
     Mul,
+    /// Divides the total by the value, rounding down (`/`).
     Div,
 }
 
-impl str::FromStr for Operator {
-    type Err = ParseError;
+impl FromStr for Operator {
+    type Err = NotationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let operator = match s {
@@ -19,20 +28,79 @@ impl str::FromStr for Operator {
             "-" => Operator::Sub,
             "*" => Operator::Mul,
             "/" => Operator::Div,
-            _ => return Err(ParseError::InvalidOperator),
+            _ => return Err(NotationError::InvalidOperator),
         };
 
         Ok(operator)
     }
 }
 
+/// A validated operator and value applied to a roll's total.
+///
+/// Create one with [`Modifier::try_new`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Modifier {
-    pub operator: Operator,
-    pub value: u32,
+    operator: Operator,
+    value: u32,
 }
 
 impl Modifier {
+    /// Creates a modifier, checking the value is usable with the operator.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NotationError::Zero`] if the operator is [`Operator::Div`]
+    /// and the value is zero, or [`NotationError::NumberTooLarge`] if the
+    /// value exceeds [`MAX_VALUE`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use roll::notation::{Modifier, Operator};
+    ///
+    /// let modifier = Modifier::try_new(Operator::Add, 3).unwrap();
+    /// assert_eq!(modifier.apply(10), 13);
+    ///
+    /// assert!(Modifier::try_new(Operator::Div, 0).is_err());
+    /// ```
+    pub fn try_new(operator: Operator, value: u32) -> Result<Self, NotationError> {
+        match (operator, value) {
+            (Operator::Div, 0) => Err(NotationError::Zero("divisor")),
+            (_, 0..=MAX_VALUE) => Ok(Modifier { operator, value }),
+            _ => Err(NotationError::NumberTooLarge(MAX_VALUE)),
+        }
+    }
+
+    /// The modifier's operator.
+    #[must_use]
+    pub fn operator(self) -> Operator {
+        self.operator
+    }
+
+    /// The modifier's value.
+    #[must_use]
+    pub fn value(self) -> u32 {
+        self.value
+    }
+
+    /// Applies the modifier to a total.
+    ///
+    /// The result never goes below zero or above [`u32::MAX`]: subtraction
+    /// stops at zero and addition and multiplication saturate. Division rounds
+    /// down, following the D&D 5e (2014) rules.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use roll::notation::{Modifier, Operator};
+    ///
+    /// let halve = Modifier::try_new(Operator::Div, 2).unwrap();
+    /// assert_eq!(halve.apply(7), 3);
+    ///
+    /// let minus_five = Modifier::try_new(Operator::Sub, 5).unwrap();
+    /// assert_eq!(minus_five.apply(3), 0);
+    /// ```
+    #[must_use]
     pub fn apply(self, total: u32) -> u32 {
         match self.operator {
             Operator::Add => total.saturating_add(self.value),
@@ -45,193 +113,122 @@ impl Modifier {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
-    #[test]
-    fn plus_sign_parsed_as_add_operator() {
-        // Arrange
-        let input = "+";
+    mod operator {
+        use super::*;
 
-        // Act
-        let result: Operator = input.parse().unwrap();
+        mod from_str {
+        use super::*;
 
-        // Assert
-        assert_eq!(result, Operator::Add)
+        #[rstest]
+        #[case::add("+", Operator::Add)]
+        #[case::sub("-", Operator::Sub)]
+        #[case::mul("*", Operator::Mul)]
+        #[case::div("/", Operator::Div)]
+        fn accepts(#[case] input: &str, #[case] expected: Operator) {
+            let result: Operator = input.parse().unwrap();
+
+            assert_eq!(result, expected)
+        }
+
+        #[rstest]
+        #[case::empty("")]
+        #[case::one_char_string("%")]
+        #[case::duplicated_operator("++")]
+        fn rejects(#[case] input: &str) {
+            let result = input.parse::<Operator>();
+
+            assert!(matches!(result, Err(NotationError::InvalidOperator)))
+        }
     }
 
-    #[test]
-    fn hyphen_parsed_as_sub_operator() {
-        // Arrange
-        let input = "-";
-
-        // Act
-        let result: Operator = input.parse().unwrap();
-
-        // Assert
-        assert_eq!(result, Operator::Sub)
     }
 
-    #[test]
-    fn forward_stroke_parsed_as_div_operator() {
-        // Arrange
-        let input = "/";
+    mod modifier {
+        use super::*;
 
-        // Act
-        let result: Operator = input.parse().unwrap();
-
-        // Assert
-        assert_eq!(result, Operator::Div)
-    }
-
-    #[test]
-    fn asterisk_parsed_as_mul_operator() {
-        // Arrange
-        let input = "*";
-
-        // Act
-        let result: Operator = input.parse().unwrap();
-
-        // Assert
-        assert_eq!(result, Operator::Mul)
-    }
-
-    #[test]
-    fn percentage_not_parsed_as_operator() {
-        // Arrange
-        let input = "%";
-
-        // Act
-        let result = input.parse::<Operator>();
-
-        // Assert
-        assert!(matches!(result, Err(ParseError::InvalidOperator)))
-    }
-
-    #[test]
-    fn returns_total_summed_with_modifier_given_add_operator() {
-        // Arrange
-        let total = 4;
-        let modifier = Modifier {
-            operator: Operator::Add,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 6);
-    }
-
-    #[test]
-    fn saturates_at_max_when_adding() {
-        // Arrange
-        let total = u32::MAX;
-        let modifier = Modifier {
-            operator: Operator::Add,
-            value: 1,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, u32::MAX);
-    }
-
-    #[test]
-    fn returns_total_with_modifier_subtracted_given_sub_operator() {
-        // Arrange
-        let total = 4;
-        let modifier = Modifier {
-            operator: Operator::Sub,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 2);
-    }
-
-    #[test]
-    fn saturates_at_min_when_subtracting() {
-        // Arrange
-        let total = 1;
-        let modifier = Modifier {
-            operator: Operator::Sub,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 0);
-    }
-
-    #[test]
-    fn returns_total_multiplied_by_modifier_given_mul_operator() {
-        // Arrange
-        let total = 4;
-        let modifier = Modifier {
-            operator: Operator::Mul,
-            value: 3,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 12);
-    }
-
-    #[test]
-    fn saturates_at_max_when_multiplying() {
-        // Arrange
-        let total = u32::MAX / 2 + 1;
-        let modifier = Modifier {
-            operator: Operator::Mul,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, u32::MAX);
-    }
-
-    #[test]
-    fn returns_total_divided_by_modifier_give_div_operator() {
-        // Arrange
-        let total = 8;
-        let modifier = Modifier {
-            operator: Operator::Div,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn rounds_down_when_dividing() {
-        // Arrange
-        let total = 7;
-        let modifier = Modifier {
-            operator: Operator::Div,
-            value: 2,
-        };
-
-        // Act
-        let result = modifier.apply(total);
-
-        // Assert
-        assert_eq!(result, 3);
+        mod try_new {
+            use super::*;
+    
+            #[rstest]
+            #[case::add(Operator::Add)]
+            #[case::sub(Operator::Sub)]
+            #[case::mul(Operator::Mul)]
+            fn accepts_zero_for_non_division_operators(#[case] operator: Operator) {
+                let value = 0;
+    
+                let result = Modifier::try_new(operator, value);
+    
+                assert_eq!(result, Ok(Modifier { operator, value }));
+            }
+    
+            #[rstest]
+            #[case::add(Operator::Add)]
+            #[case::sub(Operator::Sub)]
+            #[case::mul(Operator::Mul)]
+            #[case::div(Operator::Div)]
+            fn accepts_maximum_value(#[case] operator: Operator) {
+                let value = MAX_VALUE;
+    
+                let result = Modifier::try_new(operator, value);
+    
+                assert_eq!(result, Ok(Modifier { operator, value }));
+            }
+    
+            #[rstest]
+            #[case::add(Operator::Add)]
+            #[case::sub(Operator::Sub)]
+            #[case::mul(Operator::Mul)]
+            #[case::div(Operator::Div)]
+            fn rejects_above_the_maximum(#[case] operator: Operator) {
+                let value = MAX_VALUE + 1;
+    
+                let result = Modifier::try_new(operator, value);
+    
+                assert!(matches!(
+                    result,
+                    Err(NotationError::NumberTooLarge(MAX_VALUE))
+                ));
+            }
+    
+            #[test]
+            fn rejects_division_by_zero() {
+                let operator = Operator::Div;
+                let value = 0;
+    
+                let result = Modifier::try_new(operator, value);
+    
+                assert!(matches!(result, Err(NotationError::Zero("divisor"))));
+            }
+        }
+    
+        mod apply {
+            use super::*;
+    
+            #[rstest]
+            #[case::add(4, Operator::Add, 2, 6)]
+            #[case::add_saturates(u32::MAX, Operator::Add, 1, u32::MAX)]
+            #[case::sub(4, Operator::Sub, 2, 2)]
+            #[case::sub_saturates(1, Operator::Sub, 2, u32::MIN)]
+            #[case::mul(4, Operator::Mul, 3, 12)]
+            #[case::mul_saturates(4, Operator::Mul, u32::MAX / 2 + 1, u32::MAX)]
+            #[case::div(8, Operator::Div, 2, 4)]
+            #[case::div_rounds_down(7, Operator::Div, 2, 3)]
+            fn returns_expected_value(
+                #[case] total: u32,
+                #[case] operator: Operator,
+                #[case] value: u32,
+                #[case] expected: u32,
+            ) {
+                let modifier = Modifier { operator, value };
+    
+                let result = modifier.apply(total);
+    
+                assert_eq!(result, expected);
+            }
+        }
     }
 }
