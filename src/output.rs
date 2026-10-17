@@ -1,7 +1,7 @@
 //! Formatting of command line output.
 
-use roll::notation::Modifier;
-use roll::roller::{Roll, RollType};
+use rust_roll::notation::Modifier;
+use rust_roll::roller::{Roll, RollType};
 use std::cmp::Reverse;
 use std::string::ToString;
 
@@ -89,8 +89,8 @@ pub fn format_rolls(roll_type: &RollType, rolls: &[Roll]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use roll::notation::Operator;
     use rstest::rstest;
+    use rust_roll::notation::Operator;
 
     mod format_roll {
         use super::*;

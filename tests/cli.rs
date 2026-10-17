@@ -1,3 +1,5 @@
+//! End-to-end tests for the roll binary
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 
@@ -55,7 +57,7 @@ fn quoted_notation_with_spaces_succeeds() {
 }
 
 #[test]
-fn ivalid_notation_fails() {
+fn invalid_notation_fails() {
     roll()
         .arg("foobar")
         .assert()

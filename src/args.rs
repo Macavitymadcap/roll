@@ -1,8 +1,8 @@
 //! Parsing of command line arguments.
 
 use clap::{ArgGroup, Parser};
-use roll::notation::Notation;
-use roll::roller::RollType;
+use rust_roll::notation::Notation;
+use rust_roll::roller::RollType;
 
 const NOTATION_HELP: &str = "\
 Notation:
@@ -24,7 +24,7 @@ Notation:
     reason = "one clap flag per mode; ArgGroup makes them exclusive and roll_type converts them to RollType"
 )]
 #[derive(Parser, Debug)]
-#[command(version, about, after_help = "Run with --help for details of dice notation", after_long_help = NOTATION_HELP)]
+#[command(version, after_help = "Run with --help for details of dice notation", after_long_help = NOTATION_HELP)]
 #[command(group(
   ArgGroup::new("mode").args(["advantage", "critical", "disadvantage", "scores"])
 ))]

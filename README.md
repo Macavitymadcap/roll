@@ -1,4 +1,4 @@
-# roll
+# rust-roll
 
 A command-line dice roller for tabletop RPGs, using standard dice notation
 such as `2d6+3`. Special rolls follow the Dungeons & Dragons 5th Edition
@@ -125,8 +125,8 @@ The parsing and rolling logic is also available as a library, independent
 of the command line:
 
 ```rust
-use roll::notation::Notation;
-use roll::roller::{self, RollType};
+use rust_roll::notation::Notation;
+use rust_roll::roller::{self, RollType};
 
 let notation: Notation = "d20+5".parse()?;
 let rolls = roller::roll(RollType::Advantage(notation), &mut rand::rng());

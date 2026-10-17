@@ -69,7 +69,7 @@ impl Modifier {
     /// # Examples
     ///
     /// ```
-    /// use roll::notation::{Modifier, Operator};
+    /// use rust_roll::notation::{Modifier, Operator};
     ///
     /// let modifier = Modifier::try_new(Operator::Add, 3).unwrap();
     /// assert_eq!(modifier.apply(10), 13);
@@ -105,7 +105,7 @@ impl Modifier {
     /// # Examples
     ///
     /// ```
-    /// use roll::notation::{Modifier, Operator};
+    /// use rust_roll::notation::{Modifier, Operator};
     ///
     /// let halve = Modifier::try_new(Operator::Div, 2).unwrap();
     /// assert_eq!(halve.apply(7), 3);

@@ -43,7 +43,7 @@ static NOTATION_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// # Examples
 ///
 /// ```
-/// use roll::notation::Notation;
+/// use rust_roll::notation::Notation;
 ///
 /// let notation: Notation = "2d6+3".parse().unwrap();
 ///
@@ -69,7 +69,7 @@ impl Notation {
     /// # Examples
     ///
     /// ```
-    /// use roll::notation::Notation;
+    /// use rust_roll::notation::Notation;
     ///
     /// let notation = Notation::try_new(2, 6, None).unwrap();
     /// assert_eq!(notation.count(), 2);
@@ -110,7 +110,7 @@ impl Notation {
     /// # Examples
     ///
     /// ```
-    /// use roll::notation::Notation;
+    /// use rust_roll::notation::Notation;
     ///
     /// let notation = Notation::d20(None);
     /// assert_eq!((notation.count(), notation.sides()), (1, 20));
@@ -134,7 +134,7 @@ impl Notation {
     /// # Examples
     ///
     /// ```
-    /// use roll::notation::Notation;
+    /// use rust_roll::notation::Notation;
     ///
     /// let notation: Notation = "1d8+2".parse().unwrap();
     /// let critical = notation.critical();

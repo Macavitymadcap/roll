@@ -416,19 +416,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
 
 [[package]]
-name = "roll"
-version = "0.1.0"
-dependencies = [
- "assert_cmd",
- "clap",
- "predicates",
- "rand",
- "regex",
- "rstest",
- "thiserror",
-]
-
-[[package]]
 name = "rstest"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -455,6 +442,19 @@ dependencies = [
  "rustc_version",
  "syn 2.0.119",
  "unicode-ident",
+]
+
+[[package]]
+name = "rust-roll"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "clap",
+ "predicates",
+ "rand",
+ "regex",
+ "rstest",
+ "thiserror",
 ]
 
 [[package]]

@@ -66,8 +66,8 @@ fn roll_ability_score(rng: &mut impl Rng) -> Roll {
 /// # Examples
 ///
 /// ```
-/// use roll::notation::Notation;
-/// use roll::roller::{roll, RollType};
+/// use rust_roll::notation::Notation;
+/// use rust_roll::roller::{roll, RollType};
 ///
 /// let notation: Notation = "2d6".parse().unwrap();
 /// let rolls = roll(RollType::Normal(notation), &mut rand::rng());

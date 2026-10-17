@@ -10,8 +10,8 @@
 //! # Examples
 //!
 //! ```
-//! use roll::notation::Notation;
-//! use roll::roller::{roll, RollType};
+//! use rust_roll::notation::Notation;
+//! use rust_roll::roller::{roll, RollType};
 //!
 //! let notation: Notation = "d20+5".parse().unwrap();
 //! let rolls = roll(RollType::Advantage(notation), &mut rand::rng());
@@ -19,8 +19,6 @@
 //! assert_eq!(rolls.len(), 2);
 //! assert!(rolls[0].total >= rolls[1].total);
 //! ```
-
-#![warn(missing_docs)]
 
 pub mod notation;
 pub mod roller;
