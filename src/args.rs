@@ -5,6 +5,10 @@ use roll::notation::Notation;
 use roll::roller::RollType;
 
 /// Roll dice using tabletop RPG notation, following the D&D 5e (2014) rules.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one clap flag per mode; ArgGroup makes them exclusive and roll_type converts them to RollType"
+)]
 #[derive(Parser, Debug)]
 #[command(version, about)]
 #[command(group(
