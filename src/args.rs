@@ -33,7 +33,8 @@ pub struct Cli {
 }
 
 impl Cli {
-    /// Maps the input flag to the RollType enum.
+    /// Maps the input flag to the `RollType` enum.
+    #[must_use]
     pub fn roll_type(&self) -> RollType {
         let notation = self.notation.unwrap_or(Notation::d20(None));
         if self.advantage {
@@ -63,7 +64,7 @@ mod tests {
 
     #[test]
     fn cli_definition_is_valid() {
-        Cli::command().debug_assert()
+        Cli::command().debug_assert();
     }
 
     mod parse {

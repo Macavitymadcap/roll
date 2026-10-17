@@ -170,13 +170,13 @@ impl FromStr for Notation {
 impl fmt::Display for Notation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.count != 1 {
-            write!(f, "{}", self.count)?
+            write!(f, "{}", self.count)?;
         }
 
         write!(f, "d{}", self.sides)?;
 
         if let Some(modifier) = self.modifier {
-            write!(f, "{modifier}")?
+            write!(f, "{modifier}")?;
         }
 
         Ok(())
@@ -399,7 +399,7 @@ mod tests {
                     sides: 20,
                     modifier
                 }
-            )
+            );
         }
     }
 

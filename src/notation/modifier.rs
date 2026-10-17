@@ -150,7 +150,7 @@ mod tests {
             fn accepts(#[case] input: &str, #[case] expected: Operator) {
                 let result: Operator = input.parse().unwrap();
 
-                assert_eq!(result, expected)
+                assert_eq!(result, expected);
             }
 
             #[rstest]
@@ -160,7 +160,7 @@ mod tests {
             fn rejects(#[case] input: &str) {
                 let result = input.parse::<Operator>();
 
-                assert!(matches!(result, Err(NotationError::InvalidOperator)))
+                assert!(matches!(result, Err(NotationError::InvalidOperator)));
             }
         }
 
@@ -173,7 +173,7 @@ mod tests {
             #[case::mul(Operator::Mul, String::from("*"))]
             #[case::div(Operator::Div, String::from("/"))]
             fn returns_formatted_string(#[case] operator: Operator, #[case] expected: String) {
-                assert_eq!(operator.to_string(), expected)
+                assert_eq!(operator.to_string(), expected);
             }
         }
     }
@@ -193,7 +193,7 @@ mod tests {
 
                 let result = modifier.to_string();
 
-                assert_eq!(result, "+10")
+                assert_eq!(result, "+10");
             }
         }
 

@@ -3,10 +3,11 @@
 use roll::notation::Modifier;
 use roll::roller::{Roll, RollType};
 use std::cmp::Reverse;
+use std::string::ToString;
 
 fn join_dice(dice: &[u32]) -> String {
     dice.iter()
-        .map(|die| die.to_string())
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -38,7 +39,7 @@ fn format_pair(kept: &Roll, dropped: &Roll, modifier: Option<Modifier>) -> Strin
     format!("{kept_string}, dropped {dropped_string}")
 }
 
-/// Returns a formatted string of the given RollType and rolls.
+/// Returns a formatted string of the given `RollType` and rolls.
 ///
 /// # Examples
 ///
@@ -205,7 +206,7 @@ mod tests {
             assert_eq!(
                 result,
                 "d20+5 (Advantage): [12] + 5 = 17, dropped [4] + 5 = 9"
-            )
+            );
         }
 
         #[test]
@@ -227,7 +228,7 @@ mod tests {
             assert_eq!(
                 result,
                 "d20+3 (Disadvantage): [7] + 3 = 10, dropped [15] + 3 = 18"
-            )
+            );
         }
 
         #[test]

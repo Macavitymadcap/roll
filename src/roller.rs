@@ -133,7 +133,7 @@ mod tests {
             assert!(
                 result.iter().all(|die| (1..=sides).contains(die)),
                 "a die was out of range: {result:?}"
-            )
+            );
         }
 
         #[rstest]
@@ -280,7 +280,7 @@ mod tests {
 
             let result = roll(roll_type, &mut rng);
 
-            assert!(result[0].total >= result[1].total)
+            assert!(result[0].total >= result[1].total);
         }
 
         #[rstest]
@@ -301,7 +301,7 @@ mod tests {
 
             let result = roll(roll_type, &mut rng);
 
-            assert!(result[0].total <= result[1].total)
+            assert!(result[0].total <= result[1].total);
         }
 
         #[rstest]
