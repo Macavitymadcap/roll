@@ -170,4 +170,4 @@ tests/
 
 ## Licence
 
-MIT Version 2.0.
+Licensed under the [MIT licence](LICENSE).
