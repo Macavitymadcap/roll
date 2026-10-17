@@ -11,6 +11,7 @@ use std::cmp::Reverse;
 
 /// What to roll, and how.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RollType {
     /// Roll the notation once.
     Normal(Notation),

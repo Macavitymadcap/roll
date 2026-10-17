@@ -5,6 +5,7 @@ use thiserror::Error;
 
 /// An error from parsing or constructing dice notation.
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum NotationError {
     /// The input doesn't match the `XdY?Z` notation format.
     #[error("invalid dice notation; expected something like 2d6+3")]
