@@ -4,13 +4,27 @@ use clap::{ArgGroup, Parser};
 use roll::notation::Notation;
 use roll::roller::RollType;
 
+const NOTATION_HELP: &str = "\
+Notation:
+  XdY?Z, where:
+    X   number of dice; optional, defaults to 1
+    dY  a die with Y sides; d or D
+    ?   operator: +, -, * or /; optional
+    Z   value the operator applies to the total
+
+  The modifier applies to the total, not to each die. Division rounds down
+  and totals never go below zero.
+
+  Whitespace between parts is allowed. Quote the notation so the shell
+  passes it as one argument: roll \"2d6 + 3\"";
+
 /// Roll dice using tabletop RPG notation, following the D&D 5e (2014) rules.
 #[expect(
     clippy::struct_excessive_bools,
     reason = "one clap flag per mode; ArgGroup makes them exclusive and roll_type converts them to RollType"
 )]
 #[derive(Parser, Debug)]
-#[command(version, about)]
+#[command(version, about, after_help = "Run with --help for details of dice notation", after_long_help = NOTATION_HELP)]
 #[command(group(
   ArgGroup::new("mode").args(["advantage", "critical", "disadvantage", "scores"])
 ))]

@@ -83,14 +83,33 @@ fn conflicting_arguments_fail() {
 }
 
 #[test]
-fn help_flag_succeeds() {
-    roll()
+fn short_help_flag_succeeds() {
+    let output = roll()
         .arg("-h")
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "Roll dice using tabletop RPG notation",
-        ));
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).unwrap();
+
+    assert!(stdout.contains("Roll dice using tabletop RPG notation"));
+    assert!(!stdout.contains("XdY?Z"));
+}
+
+#[test]
+fn long_help_flag_succeeds_and_explains_notation() {
+    let output = roll()
+        .arg("--help")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).unwrap();
+
+    assert!(stdout.contains("Roll dice using tabletop RPG notation"));
+    assert!(stdout.contains("XdY?Z"));
 }
 
 #[test]
