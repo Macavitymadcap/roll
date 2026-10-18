@@ -25,15 +25,15 @@ pub enum NotationError {
     UnexpectedToken {
         /// The type of token expected by the parser.
         expected: &'static str,
-        /// The zero-based position of the character in the input. 
-        position: usize
+        /// The zero-based position of the character in the input.
+        position: usize,
     },
 
     /// The input ends while the parser still needs more.
     #[error("expected {expected} at the end of the notation")]
-        UnexpectedEnd { 
+    UnexpectedEnd {
         /// The type of token expected by the prseeeds more.
-        expected: &'static str
+        expected: &'static str,
     },
 
     /// No term is a dice term.
@@ -47,7 +47,6 @@ pub enum NotationError {
     /// There are more than `MAX_TERMS` terms
     #[error("too many terms; the maximum is {0}")]
     TooManyTerms(u32),
-
 
     /// A number in the input couldn't be parsed, usually because it's
     /// too large for a `u32`.

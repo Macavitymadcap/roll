@@ -14,6 +14,7 @@ use std::{str::FromStr, sync::LazyLock};
 
 mod error;
 mod modifier;
+mod token;
 
 pub use error::NotationError;
 pub use modifier::{Modifier, Operator};

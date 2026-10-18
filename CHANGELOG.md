@@ -14,7 +14,9 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `UnexpectedEnd`: The input ends while the parser still needs more
   - `NoDice`: No term is a dice term
   - `TooManyDice`: The total dice across terms exceeds `MAX_DICE`
-  - `TooManyTerms`: There are more than `MAX_TERMS` terms   
+  - `TooManyTerms`: There are more than `MAX_TERMS` terms
+- `token` module to handle tokenising of notation, with `TokenKind` enum, 
+  `Token` struct and `tokenise` function; 
 
 ## [0.1.0] - 2026-10-17
 
