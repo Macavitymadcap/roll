@@ -7,6 +7,15 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- New `NotationError` variants:
+  - `UnexpectedCharacter`: The tokeniser meets a character it doesn't know 
+  - `UnexpectedToken`: The parser meets a token it didn't expect
+  - `UnexpectedEnd`: The input ends while the parser still needs more
+  - `NoDice`: No term is a dice term
+  - `TooManyDice`: The total dice across terms exceeds `MAX_DICE`
+  - `TooManyTerms`: There are more than `MAX_TERMS` terms   
+
 ## [0.1.0] - 2026-10-17
 
 The first release of `rust-roll`, a dice roller for tabletop RPGs.
