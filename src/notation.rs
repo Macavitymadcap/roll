@@ -20,6 +20,8 @@ mod token;
 
 pub use error::NotationError;
 pub use modifier::{Modifier, Operator};
+pub use scale::{Scale, ScaleOperator};
+pub use term::{Sign, Term, TermKind};
 
 /// The largest value allowed for the number of dice, the number of sides,
 /// or a modifier's value.
