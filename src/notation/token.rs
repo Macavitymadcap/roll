@@ -22,7 +22,7 @@ pub(super) fn tokenise(input: &str) -> Result<Vec<Token>, NotationError> {
 
     while let Some((position, character)) = chars.next() {
         let kind = match character {
-            ' ' | '\t' => continue,
+            c if c.is_whitespace() => continue,
             '+' => TokenKind::Plus,
             '-' => TokenKind::Minus,
             '*' => TokenKind::Times,
@@ -36,7 +36,12 @@ pub(super) fn tokenise(input: &str) -> Result<Vec<Token>, NotationError> {
 
                 TokenKind::Number(digits.parse()?)
             }
-            _ => return Err(NotationError::UnexpectedCharacter { character, position }),
+            _ => {
+                return Err(NotationError::UnexpectedCharacter {
+                    character,
+                    position,
+                });
+            }
         };
 
         tokens.push(Token { kind, position });
@@ -47,43 +52,49 @@ pub(super) fn tokenise(input: &str) -> Result<Vec<Token>, NotationError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::notation::token;
-
-use super::*;
+    use super::*;
     use rstest::rstest;
 
+    fn kinds(input: &str) -> Vec<TokenKind> {
+        tokenise(input)
+            .unwrap()
+            .iter()
+            .map(|token| token.kind)
+            .collect()
+    }
+
     #[rstest]
-    #[case::plus("+", vec![Token { kind: TokenKind::Plus, position: 0 }])]
-    #[case::minus("-", vec![Token { kind: TokenKind::Minus, position: 0 }])]
-    #[case::times("*", vec![Token { kind: TokenKind::Times, position: 0 }])]
-    #[case::divide("/", vec![Token { kind: TokenKind::Divide, position: 0 }])]
-    fn matches_arithmetic_symbol(#[case] input: &str, #[case] expected: Vec<Token>) {
-        let result = tokenise(input).unwrap();
+    #[case::plus("+", vec![TokenKind::Plus])]
+    #[case::minus("-", vec![TokenKind::Minus])]
+    #[case::times("*", vec![TokenKind::Times])]
+    #[case::divide("/", vec![TokenKind::Divide])]
+    fn matches_arithmetic_symbol(#[case] input: &str, #[case] expected: Vec<TokenKind>) {
+        let result = kinds(input);
 
         assert_eq!(result, expected);
     }
 
     #[rstest]
-    #[case::lowercase("d", vec![Token {kind: TokenKind::Die, position: 0}])]
-    #[case::uppercase("D", vec![Token {kind: TokenKind::Die, position: 0}])]
-
-    fn matches_die(#[case] input: &str, #[case] expected: Vec<Token>) {
-        let result = tokenise(input).unwrap();
-
-        assert_eq!(result, expected);
-    }
-
-    #[rstest]
-    #[case::single("6", vec![Token {kind: TokenKind::Number(6), position: 0}])]
-    #[case::multiple("120", vec![Token {kind: TokenKind::Number(120), position: 0}])]
-    fn matches_digits(#[case] input: &str, #[case] expected: Vec<Token>) {
-        let result = tokenise(input).unwrap();
+    #[case::lowercase("d", vec![TokenKind::Die])]
+    #[case::uppercase("D", vec![TokenKind::Die])]
+    fn matches_die(#[case] input: &str, #[case] expected: Vec<TokenKind>) {
+        let result = kinds(input);
 
         assert_eq!(result, expected);
     }
 
     #[rstest]
-    #[case::no_whitespace("2d6", vec![0, 1, 2])]
+    #[case::single("6", vec![TokenKind::Number(6)])]
+    #[case::multiple("120", vec![TokenKind::Number(120)])]
+    fn matches_digits(#[case] input: &str, #[case] expected: Vec<TokenKind>) {
+        let result = kinds(input);
+
+        assert_eq!(result, expected);
+    }
+
+    #[rstest]
+    #[case::single_digit_integers("2d6", vec![0, 1, 2])]
+    #[case::multi_digit_integer("12d10", vec![0, 2, 3])]
     #[case::whitespace(" 2 d 6 ", vec![1, 3, 5])]
     fn matches_positions(#[case] input: &str, #[case] expected: Vec<usize>) {
         let result = tokenise(input)
@@ -93,6 +104,15 @@ use super::*;
             .collect::<Vec<_>>();
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn whitespace_splits_numbers() {
+        let input = "1 0";
+
+        let result = kinds(input);
+
+        assert_eq!(result, vec![TokenKind::Number(1), TokenKind::Number(0)]);
     }
 
     #[test]
@@ -116,7 +136,7 @@ use super::*;
                 character: '%',
                 position: 3
             })
-        ))
+        ));
     }
 
     #[test]
@@ -125,10 +145,6 @@ use super::*;
 
         let result = tokenise(input);
 
-        assert!(matches!(
-            result,
-            Err(NotationError::InvalidNumber(_))
-        ))
+        assert!(matches!(result, Err(NotationError::InvalidNumber(_))));
     }
-
 }
