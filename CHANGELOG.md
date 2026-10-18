@@ -17,6 +17,9 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `TooManyTerms`: There are more than `MAX_TERMS` terms
 - `token` module to handle tokenising of notation, with `TokenKind` enum, 
   `Token` struct and `tokenise` function; 
+- `term` module containing types for `Sign`, `TermKind`, and `Term`
+- `scale` module containg types for `ScaleOperator` and `Scale`, with methods
+  ported from the `modifier` module whith it will partially replace.
 
 ## [0.1.0] - 2026-10-17
 
