@@ -79,6 +79,14 @@ impl Term {
     }
 }
 
+impl Neg for Term {
+    type Output = Term;
+
+     fn neg(self) -> Term {
+        self.negated()
+     }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -8,9 +8,8 @@
 //! A [`Notation`] can only be created through [`Notation::try_new`] or by
 //! parsing, so every notation built from user input is within bounds.
 
-use regex::{Captures, Regex};
 use std::fmt;
-use std::{str::FromStr, sync::LazyLock};
+use std::str::FromStr;
 
 mod error;
 mod modifier;
@@ -23,23 +22,15 @@ pub use modifier::{Modifier, Operator};
 pub use scale::{Scale, ScaleOperator};
 pub use term::{Sign, Term, TermKind};
 
-/// The largest value allowed for the number of dice, the number of sides,
-/// or a modifier's value.
+/// The largest value allowed for each number of sides, each constant and
+/// scale value.
 pub const MAX_VALUE: u32 = 1_000;
 
-static NOTATION_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"(?x)                                    # verbose mode, literal whitespace ignored
-      ^ \s*
-      (?<count>[0-9]+)? \s*                           # optional number of dice
-      [dD] \s*
-      (?<sides>[0-9]+)                                # faces per die
-      (?: \s* (?<op>[-+*/]) \s* (?<value>[0-9]+) )?   # optional modifier
-      \s* $
-    ",
-    )
-    .expect("Notation regex should be valid")
-});
+/// The total number of dice across all terms.
+pub const MAX_DICE: u32 = 1_000;
+
+/// The number of terms, dice and constants together.
+pub const MAX_TERMS: usize = 20;
 
 /// A validated dice expression, such as `2d6+3`.
 ///
@@ -56,19 +47,19 @@ static NOTATION_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// assert_eq!(notation.sides(), 6);
 /// assert!(notation.modifier().is_some());
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notation {
-    count: u32,
-    sides: u32,
-    modifier: Option<Modifier>,
+    terms: Vec<Term>,
+    scale: Option<Scale>,
 }
 
 impl Notation {
-    /// Creates a notation, checking that `count` and `sides` are within bounds.
+    /// Creates a notation, checking that the each `Term` is in bounds and that
+    /// the total number of terms does not exceed [`MAX_TERMS`].
     ///
     /// # Errors
     ///
-    /// Returns [`NotationError::Zero`] if `count` or `sides` is zero, or
+    /// Returns [`NotationError::Zero`] if any `count` or `sides` is zero, or
     /// [`NotationError::NumberTooLarge`] if either exceeds [`MAX_VALUE`].
     ///
     /// # Examples
@@ -79,34 +70,57 @@ impl Notation {
     /// let notation = Notation::try_new(2, 6, None).unwrap();
     /// assert_eq!(notation.count(), 2);
     /// ```
-    pub fn try_new(
-        count: u32,
-        sides: u32,
-        modifier: Option<Modifier>,
-    ) -> Result<Self, NotationError> {
-        Ok(Notation {
-            count: check_bounds(count, "count")?,
-            sides: check_bounds(sides, "sides")?,
-            modifier,
-        })
+    pub fn try_new(terms: Vec<Term>, scale: Option<Scale>) -> Result<Self, NotationError> {
+        if terms.len() > MAX_TERMS {
+            return Err(NotationError::TooManyTerms(MAX_TERMS));
+        };
+
+        if !terms
+            .iter()
+            .any(|term| matches!(term.kind, TermKind::Dice { .. }))
+        {
+            return Err(NotationError::NoDice);
+        };
+
+        for term in &terms {
+            match term.kind {
+                TermKind::Dice { count, sides } => {
+                    check_bounds(count, "count")?;
+                    check_bounds(sides, "sides")?;
+                }
+                TermKind::Constant(value) => {
+                    if value > MAX_VALUE {
+                        return Err(NotationError::NumberTooLarge(MAX_VALUE));
+                    }
+                }
+            }
+        }
+
+        let total_dice: u32 = terms
+            .iter()
+            .filter_map(|term| match term.kind {
+                TermKind::Dice { count, .. } => Some(count),
+                TermKind::Constant(_) => None,
+            })
+            .sum();
+
+        if total_dice > MAX_DICE {
+            return Err(NotationError::TooManyDice(MAX_DICE));
+        };
+
+        Ok(Notation { terms, scale })
     }
 
-    /// The number of dice to roll.
+    /// The terms of the notation.
     #[must_use]
-    pub fn count(self) -> u32 {
-        self.count
+    pub fn terms(&self) -> &[Term] {
+        &self.terms
     }
 
-    /// The number of sides of each die.
+    /// The scale to apply to the total.
     #[must_use]
-    pub fn sides(self) -> u32 {
-        self.sides
-    }
-
-    /// The modifier to apply to the total, if any.
-    #[must_use]
-    pub fn modifier(self) -> Option<Modifier> {
-        self.modifier
+    pub fn scale(&self) -> Option<Scale> {
+        self.scale
     }
 
     /// A single d20 with an optional modifier: the default roll for
@@ -121,11 +135,16 @@ impl Notation {
     /// assert_eq!((notation.count(), notation.sides()), (1, 20));
     /// ```
     #[must_use]
-    pub fn d20(modifier: Option<Modifier>) -> Notation {
+    pub fn d20() -> Notation {
         Notation {
-            count: 1,
-            sides: 20,
-            modifier,
+            terms: vec![Term {
+                kind: TermKind::Dice {
+                    count: 1,
+                    sides: 20,
+                },
+                sign: Sign::Plus,
+            }],
+            scale: None,
         }
     }
 
@@ -149,10 +168,7 @@ impl Notation {
     /// ```
     #[must_use]
     pub fn critical(self) -> Notation {
-        Notation {
-            count: self.count * 2,
-            ..self
-        }
+        todo!()
     }
 }
 
@@ -160,60 +176,13 @@ impl FromStr for Notation {
     type Err = NotationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let captures = NOTATION_RE
-            .captures(s)
-            .ok_or(NotationError::InvalidFormat)?;
-
-        Notation::try_new(
-            parse_count(&captures)?,
-            parse_sides(&captures)?,
-            parse_modifier(&captures)?,
-        )
+        todo!()
     }
 }
 
 impl fmt::Display for Notation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.count != 1 {
-            write!(f, "{}", self.count)?;
-        }
-
-        write!(f, "d{}", self.sides)?;
-
-        if let Some(modifier) = self.modifier {
-            write!(f, "{modifier}")?;
-        }
-
-        Ok(())
-    }
-}
-
-fn parse_count(captures: &Captures) -> Result<u32, NotationError> {
-    let count = captures
-        .name("count")
-        .map(|m| m.as_str().parse::<u32>())
-        .transpose()?
-        .unwrap_or(1);
-
-    Ok(count)
-}
-
-fn parse_sides(captures: &Captures) -> Result<u32, NotationError> {
-    let sides = captures["sides"].parse()?;
-
-    Ok(sides)
-}
-
-fn parse_modifier(captures: &Captures) -> Result<Option<Modifier>, NotationError> {
-    match (captures.name("op"), captures.name("value")) {
-        (Some(op), Some(value)) => {
-            let operator = op.as_str().parse()?;
-            let value = value.as_str().parse()?;
-
-            Modifier::try_new(operator, value).map(Some)
-        }
-        (None, None) => Ok(None),
-        _ => Err(NotationError::InvalidFormat),
+        todo!()
     }
 }
 
@@ -228,206 +197,70 @@ fn check_bounds(value: u32, name: &'static str) -> Result<u32, NotationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::modifier;
     use ::rstest::rstest;
 
     mod try_new {
         use super::*;
+        use crate::test_helpers::scale;
 
         #[rstest]
-        #[case::typical(2, 6, None)]
-        #[case::with_modifier(1, 20, Some(modifier(Operator::Add, 5)))]
-        #[case::max_count(MAX_VALUE, 100, None)]
-        #[case::max_sides(5, MAX_VALUE, None)]
-        fn accepts_valid_values(
-            #[case] count: u32,
-            #[case] sides: u32,
-            #[case] modifier: Option<Modifier>,
-        ) {
-            let result = Notation::try_new(count, sides, modifier);
-
-            assert_eq!(
-                result,
-                Ok(Notation {
-                    count,
-                    sides,
-                    modifier
-                })
-            );
-        }
-
-        #[rstest]
-        #[case::zero_count(0, 6, NotationError::Zero("count"))]
-        #[case::zero_sides(1, 0, NotationError::Zero("sides"))]
-        #[case::count_too_large(MAX_VALUE + 1, 6, NotationError::NumberTooLarge(MAX_VALUE))]
-        #[case::sides_too_large(1, MAX_VALUE + 1, NotationError::NumberTooLarge(MAX_VALUE))]
-        fn rejects_invalid_values(
-            #[case] count: u32,
-            #[case] sides: u32,
-            #[case] expected: NotationError,
-        ) {
-            let result = Notation::try_new(count, sides, None);
-
-            assert_eq!(result, Err(expected));
-        }
-    }
-
-    mod from_str {
-        use super::*;
-
-        #[test]
-        fn defaults_to_one() {
-            let input = "d20";
-
-            let result: Notation = input.parse().unwrap();
-
-            assert_eq!(
-                result,
-                Notation {
-                    count: 1,
-                    sides: 20,
-                    modifier: None
-                }
-            );
-        }
-
-        #[test]
-        fn ignores_whitespace() {
-            let input = "   3    d   4  + 5  ";
-
-            let result: Notation = input.parse().unwrap();
-
-            assert_eq!(
-                result,
-                Notation {
-                    count: 3,
-                    sides: 4,
-                    modifier: Some(modifier(Operator::Add, 5))
-                }
-            );
-        }
-
-        #[test]
-        fn accepts_uppercase_d() {
-            let input = "D100";
-
-            let result: Notation = input.parse().unwrap();
-
-            assert_eq!(
-                result,
-                Notation {
-                    count: 1,
-                    sides: 100,
-                    modifier: None
-                }
-            );
-        }
-
-        #[rstest]
-        #[case::word("banana")]
-        #[case::whitespace_between_digits("2d1 0")]
-        #[case::operator_without_value("d10+")]
-        fn rejects_invalid_format(#[case] input: &str) {
-            let result = input.parse::<Notation>();
-
-            assert!(matches!(result, Err(NotationError::InvalidFormat)));
-        }
-
-        #[rstest]
-        #[case::count("99999999999d6")]
-        #[case::sides("d99999999999")]
-        #[case::modifier("d10+99999999999")]
-        fn rejects_overflow(#[case] input: &str) {
-            let result = input.parse::<Notation>();
-
-            assert!(matches!(result, Err(NotationError::InvalidNumber(_))));
-        }
-
-        #[rstest]
-        #[case::add("+", Operator::Add)]
-        #[case::sub("-", Operator::Sub)]
-        #[case::mul("*", Operator::Mul)]
-        #[case::div("/", Operator::Div)]
-        fn accepts_modifier(#[case] input: &str, #[case] expected: Operator) {
-            let input = format!("1d8{input}2");
-
-            let result: Notation = input.parse().unwrap();
-
-            assert_eq!(
-                result,
-                Notation {
-                    count: 1,
-                    sides: 8,
-                    modifier: Some(modifier(expected, 2))
-                }
-            );
-        }
-
-        #[rstest]
-        #[case::zero_count("0d6", NotationError::Zero("count"))]
-        #[case::number_too_large("d1001", NotationError::NumberTooLarge(MAX_VALUE))]
-        #[case::zero_divisor("d6/0", NotationError::Zero("divisor"))]
-        fn passes_on_validation(#[case] input: &str, #[case] expected: NotationError) {
-            let result = input.parse::<Notation>();
-
-            assert_eq!(result, Err(expected));
-        }
-    }
-
-    mod display {
-        use super::*;
-
-        #[rstest]
-        #[case::one_die(Notation { count: 1, sides: 100, modifier: None}, "d100")]
-        #[case::many_dice(Notation {count: 5, sides: 6, modifier: None}, "5d6")]
-        #[case::with_modifier(Notation { count: 10, sides: 4, modifier: Some(modifier(Operator::Sub, 5))}, "10d4-5")]
-        fn returns_formatted_string(#[case] notation: Notation, #[case] expected: &str) {
-            let result = notation.to_string();
+        #[case::too_many_terms(vec![Term::dice(1, 4); 21], NotationError::TooManyTerms(MAX_TERMS))]
+        #[case::no_dice_terms(vec![Term::constant(1)], NotationError::NoDice)]
+        #[case::empty_terms(vec![], NotationError::NoDice)]
+        #[case::too_many_dice(vec![Term::dice(MAX_DICE / 2 + 1, 6); 2], NotationError::TooManyDice(MAX_DICE))]
+        #[case::zero_count(vec![Term::dice(0, 8)], NotationError::Zero("count"))]
+        #[case::count_too_large(vec![Term::dice(MAX_VALUE + 1, 4)], NotationError::NumberTooLarge(MAX_VALUE))]
+        #[case::zero_sides(vec![Term::dice(2, 0)], NotationError::Zero("sides"))]
+        #[case::too_many_sides(vec![Term::dice(4, MAX_VALUE + 1)], NotationError::NumberTooLarge(MAX_VALUE))]
+        #[case::constant_too_large(vec![Term::dice(1, 6), Term::constant(MAX_VALUE + 1)],  NotationError::NumberTooLarge(MAX_VALUE))]
+        #[case::too_many_total_dice(vec![Term::dice(600, 6), Term::dice(600, 6)], NotationError::TooManyDice(MAX_DICE))]
+        #[case::overflow(vec![Term::dice(u32::MAX, 10), Term::dice(1, 8)], NotationError::NumberTooLarge(MAX_VALUE))]
+        fn rejects_invalid(#[case] terms: Vec<Term>, #[case] expected: NotationError) {
+            let result = Notation::try_new(terms, None).unwrap_err();
 
             assert_eq!(result, expected);
+        }
+
+        #[rstest]
+        #[case::single_dice_term(vec![Term::dice(1, 6)], None)]
+        #[case::die_and_constant(vec![Term::dice(2, 6), Term::constant(3)], None)]
+        #[case::several_dice_terms(vec![Term::dice(1, 8), Term::dice(3, 6), Term::constant(3)], None)]
+        #[case::negative_terms(vec![Term::dice(1, 8), -Term::constant(2), -Term::dice(1, 4)], None)]
+        #[case::leading_negative_const(vec![-Term::constant(2), Term::dice(2, 6)], None)]
+        #[case::with_a_scale(vec![Term::dice(4, 8)], Some(scale(ScaleOperator::Multiply, 2)))]
+        #[case::maximum_terms(vec![Term::dice(1, 4); MAX_TERMS], None)]
+        #[case::maximum_total_dice(vec![Term::dice(500, 10), Term::dice(500, 8)], None)]
+        #[case::constant_of_zero(vec![Term::dice(1, 6), Term::constant(0)], None)]
+        fn accepts_valid(
+            #[case] terms: Vec<Term>,
+            #[case] scale: Option<Scale>,
+        ) {
+            let expected = Notation { terms: terms.clone(), scale };
+
+            let result = Notation::try_new(terms, scale);
+
+            assert_eq!(result, Ok(expected));
         }
     }
 
     mod d20 {
         use super::*;
 
-        #[rstest]
-        #[case::plain(None)]
-        #[case::with_modifier(Some(modifier(Operator::Add, 5)))]
-        fn builds_correct_notation(#[case] modifier: Option<Modifier>) {
-            let result = Notation::d20(modifier);
-
-            assert_eq!(
-                result,
-                Notation {
-                    count: 1,
-                    sides: 20,
-                    modifier
-                }
-            );
-        }
-    }
-
-    mod critical {
-        use super::*;
-
         #[test]
-        fn doubles_count() {
-            let modifier = modifier(Operator::Add, 2);
-            let notation = Notation {
-                count: 1,
-                sides: 8,
-                modifier: Some(modifier),
-            };
-
-            let result = notation.critical();
+        fn builds_correct_notation() {
+            let result = Notation::d20();
 
             assert_eq!(
                 result,
                 Notation {
-                    count: 2,
-                    sides: 8,
-                    modifier: Some(modifier)
+                    terms: vec![Term {
+                        kind: TermKind::Dice {
+                            count: 1,
+                            sides: 20
+                        },
+                        sign: Sign::Plus
+                    }],
+                    scale: None
                 }
             );
         }

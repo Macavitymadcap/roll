@@ -46,7 +46,7 @@ pub enum NotationError {
 
     /// There are more than `MAX_TERMS` terms
     #[error("too many terms; the maximum is {0}")]
-    TooManyTerms(u32),
+    TooManyTerms(usize),
 
     /// A number in the input couldn't be parsed, usually because it's
     /// too large for a `u32`.
